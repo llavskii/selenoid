@@ -179,16 +179,31 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 			}
 		}
 	}
-
-	stat, err := cl.ContainerInspect(ctx, browserContainerId)
-	if err != nil {
-		removeContainer(ctx, cl, requestId, browserContainerId)
-		return nil, fmt.Errorf("inspect container %s: %s", browserContainerId, err)
+	const (
+		inspectRetries = 10
+		inspectDelay   = 200 * time.Millisecond
+	)
+	var stat types.ContainerJSON
+	var portFound bool
+	for i := 0; i < inspectRetries; i++ {
+		inspectedStat, err := cl.ContainerInspect(ctx, browserContainerId)
+		if err != nil {
+			removeContainer(ctx, cl, requestId, browserContainerId)
+			return nil, fmt.Errorf("inspect container %s on attempt %d: %w", browserContainerId, i+1, err)
+		}
+		_, ok := inspectedStat.NetworkSettings.Ports[selenium]
+		if ok {
+			stat = inspectedStat
+			portFound = true
+			break
+		}
+		if i < inspectRetries-1 {
+			time.Sleep(inspectDelay)
+		}
 	}
-	_, ok := stat.NetworkSettings.Ports[selenium]
-	if !ok {
+	if !portFound {
 		removeContainer(ctx, cl, requestId, browserContainerId)
-		return nil, fmt.Errorf("no bindings available for %v", selenium)
+		return nil, fmt.Errorf("no bindings available for %v after %d attempts", selenium, inspectRetries)
 	}
 	servicePort := d.Service.Port
 	pc := map[string]nat.Port{
