@@ -107,7 +107,7 @@ func testMux() http.Handler {
 						"HostPort": "%s"
 						}
 					],
-					"7070/tcp": [
+					"9222/tcp": [
 						{
 						"HostIp": "0.0.0.0",
 						"HostPort": "%s"
