@@ -35,7 +35,7 @@ var ports = struct {
 	VNC, Devtools, Fileserver, Clipboard string
 }{
 	VNC:        "5900",
-	Devtools:   "9222",
+	Devtools:   "7070",
 	Fileserver: "8080",
 	Clipboard:  "9090",
 }
